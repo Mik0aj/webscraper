@@ -1,0 +1,6 @@
+*.csv
+web_scraper.py
+geckodriver.log
+test.sublime-project
+test.sublime-workspace
+
