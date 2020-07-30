@@ -8,7 +8,7 @@ class Scraper:
 		self.link_list=link_list
 		self.html_list=list()
 
-	async def download_site(self,session, url):
+	async def __download_site(self,session, url):
 		try:
 			async with session.get(url) as response:
 				self.html_list.append(await response.text())
@@ -19,7 +19,7 @@ class Scraper:
 		async with aiohttp.ClientSession() as session:
 			tasks =[]
 			for url in tqdm(self.link_list):
-				task = asyncio.ensure_future(self.download_site(session, url))
+				task = asyncio.ensure_future(self.__download_site(session, url))
 				tasks.append(task)
 			await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -30,6 +30,13 @@ class Scraper:
 			for link in soup.find_all('a'):
 				links.add(link.get('href'))
 		return links
+
+	def __enter__(self):
+		self.main()
+		return self
+
+	def __exit__(self,exc_type,exc_value,exc_traceback):
+		pass
 
 	def main(self):
 		asyncio.get_event_loop().run_until_complete(self.download_all_sites())
