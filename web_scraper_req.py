@@ -1,16 +1,10 @@
+#!/home/mikoaj/anaconda3/envs/pyton38/bin/python 
+
 from bs4 import BeautifulSoup
 from urllib.request import urlopen as ureq
 import re
 import pandas as pd
 import progressbar
-
-# firefox sie nie wylłącza przez co zajmuje niepotrzebnie pamięć ram, w skrajnym wypadku zajmuje całą i zawiesza komputer
-# trzeba najlepiej dodać funkję main a w niej try exept finnaly gdzie finally będzie wyłączeniem firefoxa
-# skrypt działa dość wolno najdłużej zajmuje metoda get_word
-# wydaje mi sie że jest to spowodowane "klikaniem" w link i dopiero przechodzeniem na strone
-# możnaby to załatwić inaczej pobrać wszystkie linki i dopiero użyć get_word
-# selenium okazał sie modułem do pisania botów a nie webscraperów wiec zmarnowałem tylko czas
-
 
 def get_links():
 	print("================================ Getting links ================================")
@@ -49,18 +43,16 @@ def get_word(link, words, definitions):
 		uClient.close()
 		soup = BeautifulSoup(html, 'html.parser')
 		data = soup.find("div", {"class": "ribbon-element type-187126"})
-		pattern_word = '>[a-zA-Z0-9 ]+<'
-		pattern_clear = '[a-zA-Z0-9 ]+'
+		pattern_word = '(?<=\>)(.*?)(?=\<)'
 		patternregex = re.compile(pattern_word)
 		word = patternregex.search(str(data)).group(0)
-		patternregex = re.compile(pattern_clear)
-		word = patternregex.search(word).group(0)
-		if word != ' ':
-			words.append(word)
-			definition = re.sub('<.*?>', '', str(data))
-			definitions.append(definition[len(word)+1:])
+		definition = re.sub('<.*?>', '', str(data))
+		patternregex= re.compile('(?<=\«)(.*?)(?=\»)')
+		definition=patternregex.search(definition).group(0)
+		words.append(word)
+		definitions.append(definition[len(word)+1:])
 	except Exception as e:
-		e=e
+		print(e)
 
 
 def save_as_csv(words,definitions):
@@ -116,6 +108,8 @@ try:
 				bar2.finish()
 except Exception as e:
 	raise(e)
+except KeyboardInterrupt:
+	print(letter,page,link)
 finally:
 	for pair in zip(words, definitions):
 		print(pair)
