@@ -1,43 +1,46 @@
 import asyncio
 import aiohttp
 from bs4 import BeautifulSoup
-from tqdm.auto import tqdm
+
 
 class Scraper:
-	def __init__(self,link_list):
-		self.link_list=link_list
-		self.html_list=list()
+    def __init__(self, link_list):
+        self.link_list = set(link_list)
+        self.html_list = set()
 
-	async def __download_site(self,session, url):
-		try:
-			async with session.get(url) as response:
-				self.html_list.append(await response.text())
-		except Exception as e:
-			print(e)
+    def __str__(self):
+        string = ''
+        for link in self.link_list:
+            string = f'{link} {string}'
+        return string
 
-	async def download_all_sites(self):
-		async with aiohttp.ClientSession() as session:
-			tasks =[]
-			for url in tqdm(self.link_list):
-				task = asyncio.ensure_future(self.__download_site(session, url))
-				tasks.append(task)
-			await asyncio.gather(*tasks, return_exceptions=True)
+    def __add__(self, other):
+        return self.link_list | other.link_list
 
-	def get_links(self):
-		links=set()
-		for html in tqdm(self.html_list):
-			soup = BeautifulSoup(html, 'html.parser')
-			for link in soup.find_all('a'):
-				links.add(link.get('href'))
-		return links
+    def __enter__(self):
+        self.main()
+        return self
 
-	def __enter__(self):
-		self.main()
-		return self
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        pass
 
-	def __exit__(self,exc_type,exc_value,exc_traceback):
-		pass
+    async def __download_site(self, session, url):
+        try:
+            async with session.get(url) as response:
+                self.html_list.add(await response.text())
+        except Exception as e:
+            print(e)
 
-	def main(self):
-		asyncio.get_event_loop().run_until_complete(self.download_all_sites())
+    async def download_all_sites(self):
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            # proggres bar would be nice but i don't know how to force async tqdm to behave correctly
+            print('Downloading sites')
+            for url in self.link_list:
+                task = asyncio.ensure_future(
+                    self.__download_site(session, url))
+                tasks.append(task)
+            await asyncio.gather(*tasks, return_exceptions=True)
 
+    def main(self):
+        asyncio.get_event_loop().run_until_complete(self.download_all_sites())
